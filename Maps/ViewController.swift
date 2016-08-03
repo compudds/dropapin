@@ -451,37 +451,19 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                         
                         alert.dismissViewControllerAnimated(true, completion: nil)
                         
-                        
-                        
-                    }))
-                    
-                    self.presentViewController(alert, animated: true, completion: nil)
-                    
-                }
-                
-                if (subThoroughfare == "39" && thoroughfare == "Taconic Rd" && zip ==  "10562") {
-                    
-                    let alert = UIAlertController(title: "Welcome home!", message: "", preferredStyle: UIAlertControllerStyle.Alert)
-                    
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
-                        
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
-                        
+                        manager.stopUpdatingLocation()
+
                         
                     }))
                     
                     self.presentViewController(alert, animated: true, completion: nil)
                     
                 }
-                
                 
             }
             
             
         })
-        
-        manager.stopUpdatingLocation()
         
         saddr = "\(latitude),\(longitude)"
         print("saddr: \(saddr)")
