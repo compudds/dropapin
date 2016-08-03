@@ -204,7 +204,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
             myMap.setRegion(theRegion, animated: true)
             myMap.mapType = MKMapType.Standard
-            myMap.showsUserLocation = true
+            //myMap.showsUserLocation = true
             
             
             findLocation()
@@ -400,12 +400,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
     }
     
-    func mapView(mapView: MKMapView!, didUpdateUserLocation userLocation: MKUserLocation!) {
-       
-        myMap.centerCoordinate = userLocation.location!.coordinate
-    }
-    
-    
     func locationManager(manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
         
         let userLocation:CLLocation = locations[0] as CLLocation
@@ -414,19 +408,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         let longitude:CLLocationDegrees = userLocation.coordinate.longitude
         
-        let latDelta:CLLocationDegrees = 0.01
+        let center = CLLocationCoordinate2D(latitude: userLocation.coordinate.latitude, longitude: userLocation.coordinate.longitude)
         
-        let lonDelta:CLLocationDegrees = 0.01
-        
-        let span:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, lonDelta)
-        
-        let location:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-        
-        let region:MKCoordinateRegion = MKCoordinateRegionMake(location, span)
-        
-        myMap.setRegion(region, animated: true)
+        let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
         
         myMap.showsUserLocation = true
+        
+        myMap.setRegion(region, animated: true)
         
         
         CLGeocoder().reverseGeocodeLocation(userLocation, completionHandler:{(placemarks, error) in
@@ -471,12 +459,29 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     
                 }
                 
+                if (subThoroughfare == "39" && thoroughfare == "Taconic Rd" && zip ==  "10562") {
+                    
+                    let alert = UIAlertController(title: "Welcome home!", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    
+                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                        
+                        alert.dismissViewControllerAnimated(true, completion: nil)
+                        
+                        
+                        
+                    }))
+                    
+                    self.presentViewController(alert, animated: true, completion: nil)
+                    
+                }
+                
                 
             }
             
-            manager.stopUpdatingLocation()
             
         })
+        
+        manager.stopUpdatingLocation()
         
         saddr = "\(latitude),\(longitude)"
         print("saddr: \(saddr)")
@@ -613,7 +618,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
         myMap.setRegion(theRegion, animated: true)
         myMap.mapType = MKMapType.Standard
-        myMap.showsUserLocation = true
+        //myMap.showsUserLocation = true
         
         let loc = CLLocation(latitude: latitude, longitude: longitude)
         

@@ -75,12 +75,14 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
             
             print("Places: \(places)")
             print("Array: \(array)")
+            print("Count: \(count)")
             
             
         } else {
             
             print("Places: \(places)")
             print("Array: \(array)")
+            print("Ct: \(count)")
             
         }
 
@@ -165,9 +167,16 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
     
     func rememberData() {
         
-        let storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
+        var storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
         
-        if storedToDoItems!.count >= 0 {
+        if (places == []) {
+            
+            places.append(["name":"39 Taconic Rd, New Castle, NY 10562 United States","lat":"41.1921242298942","lon":"-73.8126774877997"])
+            storedToDoItems = ["name":"39 Taconic Rd, New Castle, NY 10562 United States","lat":"41.1921242298942","lon":"-73.8126774877997"]
+            
+        }
+        
+        if storedToDoItems!.count > 0 {
         
             for (var i = 0; i < storedToDoItems!.count; i += 1) {
             
@@ -175,7 +184,13 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
                 
             }
            
+        } else {
+            
+            places.append(["name":"39 Taconic Rd, New Castle, NY 10562 United States","lat":"41.1921242298942","lon":"-73.8126774877997"])
+            storedToDoItems = ["name":"39 Taconic Rd, New Castle, NY 10562 United States","lat":"41.1921242298942","lon":"-73.8126774877997"]
         }
+            
+        
     }
     
     
