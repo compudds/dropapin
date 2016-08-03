@@ -148,6 +148,22 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 daddr = "\(title1)"
                 print(daddr)
+                
+                if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
+                    
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    
+                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                        
+                        alert.dismissViewControllerAnimated(true, completion: nil)
+                        
+                        
+                        
+                    }))
+                    
+                     self.presentViewController(alert, animated: true, completion: nil)
+                    
+                }
             }
             
             
@@ -217,6 +233,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         myMap.setRegion(region, animated: true)
             
+        myMap.showsUserLocation = true
+            
         let annotation = MKPointAnnotation()
             
         annotation.coordinate = location
@@ -267,8 +285,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         CLGeocoder().reverseGeocodeLocation(loc, completionHandler:{(placemarks, error) in
             
-            if ((error) != nil)  { print("Error: \(error)") }
-            else {
+            if ((error) != nil)  {
+                
+                print("Error: \(error)")
+            
+            } else {
                 
                 let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
                 
@@ -379,6 +400,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
     }
     
+    func mapView(mapView: MKMapView!, didUpdateUserLocation userLocation: MKUserLocation!) {
+       
+        myMap.centerCoordinate = userLocation.location!.coordinate
+    }
+    
+    
     func locationManager(manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
         
         let userLocation:CLLocation = locations[0] as CLLocation
@@ -399,7 +426,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         myMap.setRegion(region, animated: true)
         
-        manager.stopUpdatingLocation()
+        myMap.showsUserLocation = true
+        
         
         CLGeocoder().reverseGeocodeLocation(userLocation, completionHandler:{(placemarks, error) in
             
@@ -412,27 +440,48 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
                 
                 var subThoroughfare:String
+                var thoroughfare:String
+                var zip:String
                 
                 if ((p.subThoroughfare) != nil) {
                     subThoroughfare = p.subThoroughfare!
+                    thoroughfare = p.thoroughfare!
+                    zip = p.postalCode!
                 } else {
                     subThoroughfare = ""
+                    thoroughfare = ""
+                    zip = ""
                 }
                 
                 self.address.text =  "\(subThoroughfare) \(p.thoroughfare) \n \(p.subLocality) \n \(p.subAdministrativeArea) \n \(p.postalCode) \(p.country)"
                 
-                
+                if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
+                    
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    
+                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                        
+                        alert.dismissViewControllerAnimated(true, completion: nil)
+                        
+                        
+                        
+                    }))
+                    
+                    self.presentViewController(alert, animated: true, completion: nil)
+                    
+                }
                 
                 
             }
             
+            manager.stopUpdatingLocation()
             
-            })
+        })
         
         saddr = "\(latitude),\(longitude)"
         print("saddr: \(saddr)")
 
-        
+
     }
     
     func manualLocation() {
@@ -564,7 +613,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
         myMap.setRegion(theRegion, animated: true)
         myMap.mapType = MKMapType.Standard
-        //myMap.showsUserLocation = true
+        myMap.showsUserLocation = true
         
         let loc = CLLocation(latitude: latitude, longitude: longitude)
         
@@ -671,6 +720,22 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
 
                 daddr = "\(title1)"
                 print("\(title1)")
+                
+                if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
+                    
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    
+                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                        
+                        alert.dismissViewControllerAnimated(true, completion: nil)
+                        
+                        
+                        
+                    }))
+                    
+                    self.presentViewController(alert, animated: true, completion: nil)
+                    
+                }
             }
             
             

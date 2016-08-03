@@ -15,6 +15,8 @@
 //
 
 import UIKit
+import MapKit
+import CoreLocation
 
 var activePlace = 0
 
@@ -25,7 +27,7 @@ var array:[String] = []
 var addManually = String()
 
 
-class TableViewController: UITableViewController {
+class TableViewController: UITableViewController, CLLocationManagerDelegate {
     
     @IBOutlet  var tasksTable:UITableView!
     
@@ -56,6 +58,7 @@ class TableViewController: UITableViewController {
         }
     }
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -73,6 +76,7 @@ class TableViewController: UITableViewController {
             print("Places: \(places)")
             print("Array: \(array)")
             
+            
         } else {
             
             print("Places: \(places)")
@@ -81,6 +85,83 @@ class TableViewController: UITableViewController {
         }
 
     }
+    
+    func updateLocation() {
+        
+        manager = CLLocationManager()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingLocation()
+       
+    }
+    
+    func locationManager(manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
+            
+       
+        let latitude:CLLocationDegrees = manager.location!.coordinate.latitude
+        let longitude:CLLocationDegrees = manager.location!.coordinate.longitude
+        let latDelta:CLLocationDegrees = 0.01
+        let longDelta:CLLocationDegrees = 0.01
+        let theSpan:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, longDelta)
+        let myLocation:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
+        let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
+        
+        
+        let userLocation:CLLocation = locations[0] as CLLocation
+            
+            CLGeocoder().reverseGeocodeLocation(userLocation, completionHandler:{(placemarks, error) in
+                
+                if ((error) != nil)  {
+                    
+                    print("Error: \(error)")
+                    print("Region: \(theRegion)")
+                    
+                } else {
+                    
+                    
+                    
+                    let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
+                    
+                    //var subThoroughfare:String
+                    var thoroughfare:String
+                    var zip:String
+                    
+                    if ((p.postalCode) != nil) {
+                        //subThoroughfare = p.subThoroughfare!
+                        thoroughfare = p.thoroughfare!
+                        zip = p.postalCode!
+                    } else {
+                        //subThoroughfare = ""
+                        thoroughfare = ""
+                        zip = ""
+                    }
+                    
+                    if (thoroughfare == "Long Cabin Way" && zip ==  "10504") {
+                        
+                        let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                        
+                        alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                            
+                            alert.dismissViewControllerAnimated(true, completion: nil)
+                            
+                            
+                        }))
+                        
+                        self.presentViewController(alert, animated: true, completion: nil)
+                        
+                    }
+                    
+                }
+                
+                
+            })
+        
+         manager.stopUpdatingLocation()
+            
+        }
+    
     
     func rememberData() {
         
@@ -101,7 +182,7 @@ class TableViewController: UITableViewController {
     
     override func viewWillAppear(animated: Bool) {
         
-        
+        updateLocation()
         
     }
     
