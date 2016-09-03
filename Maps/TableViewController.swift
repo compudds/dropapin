@@ -72,6 +72,7 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
             
             rememberData()
             places.removeAtIndex(0)
+            updateLocation()
             
             print("Places: \(places)")
             print("Array: \(array)")
@@ -96,7 +97,8 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
         
         manager.requestWhenInUseAuthorization()
         manager.startUpdatingLocation()
-       
+        
+        
     }
     
     func locationManager(manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
@@ -118,7 +120,7 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
                 if ((error) != nil)  {
                     
                     print("Error: \(error)")
-                    print("Region: \(theRegion)")
+                    //print("Region: \(theRegion)")
                     
                 } else {
                     
@@ -126,21 +128,31 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
                     
                     let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
                     
-                    //var subThoroughfare:String
+                    var subThoroughfare:String
                     var thoroughfare:String
                     var zip:String
                     
-                    if ((p.postalCode) != nil) {
-                        //subThoroughfare = p.subThoroughfare!
+                    if ((p.subThoroughfare) != nil) {
+                        subThoroughfare = p.subThoroughfare!
+                    } else {
+                        subThoroughfare = ""
+                    }
+                    
+                    if ((p.thoroughfare) != nil) {
                         thoroughfare = p.thoroughfare!
+                    } else {
+                        thoroughfare = ""
+                    }
+                    
+                    if ((p.postalCode) != nil) {
                         zip = p.postalCode!
                     } else {
-                        //subThoroughfare = ""
-                        thoroughfare = ""
                         zip = ""
                     }
                     
                     if (thoroughfare == "Long Cabin Way" && zip ==  "10504") {
+                    
+                    //if (thoroughfare == "Taconic Rd" && zip ==  "10562") {
                         
                         let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
                         
@@ -149,6 +161,22 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
                             alert.dismissViewControllerAnimated(true, completion: nil)
                             
                             
+                        }))
+                        
+                        self.presentViewController(alert, animated: true, completion: nil)
+                        
+                    }
+
+                        
+                    if (subThoroughfare >= "2" && thoroughfare == "Agnew Farm Rd" && zip ==  "10504") {
+                            
+                        let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                            
+                        alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                                
+                            alert.dismissViewControllerAnimated(true, completion: nil)
+                                
+                                
                         }))
                         
                         self.presentViewController(alert, animated: true, completion: nil)
@@ -197,7 +225,7 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
     
     override func viewWillAppear(animated: Bool) {
         
-        updateLocation()
+        //updateLocation()
         
     }
     
@@ -221,7 +249,7 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
             
             addManually = addAddress.text!
             
-            
+            //manager.stopUpdatingLocation()
         }
         
     }
@@ -289,15 +317,25 @@ class TableViewController: UITableViewController, CLLocationManagerDelegate {
                 
                 let daddr1 = places[indexPath.row]["name"]!
                 let newTitle = "\(daddr1)"
-                daddr = newTitle.stringByReplacingOccurrencesOfString(" ", withString: "+")
+                daddr = newTitle.stringByReplacingOccurrencesOfString(" ", withString: "%20")
                 
-                if (UIApplication.sharedApplication().canOpenURL(NSURL(string:"comgooglemaps://")!)) {
+                /*if (UIApplication.sharedApplication().canOpenURL(NSURL(string:"comgooglemaps://")!)) {
                     UIApplication.sharedApplication().openURL(NSURL(string:
                         "comgooglemaps://?saddr=&daddr=\(daddr)&directionsmode=driving&views=traffic&mapmode=standard")!)
                     
                 } else {
                     NSLog("Can't use comgooglemaps://");
                     print("comgooglemaps://?saddr=&daddr=\(daddr)&directionsmode=driving&views=traffic&mapmode=standard")
+                }*/
+                
+                if (UIApplication.sharedApplication().canOpenURL(NSURL(string:"waze://")!)) {
+                    UIApplication.sharedApplication().openURL(NSURL(string:
+                        "waze://?q=\(daddr)&navigate=yes")!)
+                    print("waze://?q=\(daddr)&navigate=yes")
+                    
+                } else {
+                    NSLog("Can't use Waze");
+                    print("waze://?q=\(daddr)&navigate=yes")
                 }
                 
             } else {

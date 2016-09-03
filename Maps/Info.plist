@@ -46,6 +46,7 @@
 	<string>2</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>waze</string>
 		<string>maps.apple.com</string>
 		<string>comgooglemaps</string>
 		<string>com.apple.maps</string>
@@ -58,9 +59,9 @@
 		<string>MKDirectionsModePedestrian</string>
 	</array>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>I have learned more on stack overflow than anything else</string>
+	<string></string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>The spirit of stack overflow is coders helping coders</string>
+	<string></string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
