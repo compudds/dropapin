@@ -9,40 +9,274 @@
 import UIKit
 import MapKit
 import CoreLocation
+import WatchConnectivity
+import Intents
+//import SystemConfiguration
 
 var manager:CLLocationManager!
 var myLocations: [CLLocation] = []
+var lastLocation = [CLLocationCoordinate2D()]
+var startLocal: CLLocation!
+var lastLocal: CLLocation!
+var startDate: Date!
+var traveledDistance: Double = 0
 
 var count = 0
 var saddr = String()
 var daddr = String()
 
+
+@available(iOS 9.3, *)
 class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
-    
     
     @IBOutlet var myMap: MKMapView!
     
+    @IBOutlet var locationFromWatch: UILabel!
+    @IBOutlet var latitude : UILabel!
+    @IBOutlet var longitude : UILabel!
+    @IBOutlet var address : UILabel!
+    @IBOutlet var altitude : UILabel!
+    @IBOutlet var speed : UILabel!
+    @IBOutlet var heading : UILabel!
+
+    let annotation = MKPointAnnotation()
     
-    @IBAction func findMe(sender: AnyObject) {
+    @IBAction func clickButton(_ sender: Any) {
         
-        manager.requestWhenInUseAuthorization()
+        self.saveButtonTitle.isEnabled = true
+        
+        saveButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.6)
+        
+        self.clickButtonTitle.isEnabled = false
+        
+        clickButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        self.clearButtonTitle.isEnabled = false
+        
+        clearButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        DispatchQueue.main.async {
+            
+            self.takeScreenshot(true)
+            
+            self.performSegue(withIdentifier: "mapToPlaces", sender: self)
+            
+        }
+        
+        /*DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            
+            self.performSegue(withIdentifier: "mapToPlaces", sender: self)
+            
+        }*/
+        
+    }
+    
+    @IBOutlet var clearButtonTitle: UIBarButtonItem!
+    
+    @IBAction func clearButton(_ sender: Any) {
+        
         manager.startUpdatingLocation()
+        manager.startUpdatingHeading()
         
-        //shows pin on map with title = current location and adds to places table
-        let annotation = MKPointAnnotation()
+        self.clearButtonTitle.isEnabled = false
+        
+        clearButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        self.saveButtonTitle.isEnabled = true
+        
+        saveButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.6)
+        
+        self.clickButtonTitle.isEnabled = false
+        
+        clickButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        
+    }
+    
+    /*func sendPriceUpdateToWatch() {
+        
+        if (WCSession.default.isReachable) {
+            
+            let message = ["msg1": "\(BTC2) \(XRP2) \(XMR2)"]
+            
+            WCSession.default.sendMessage(message, replyHandler: nil)
+            
+            print("Sent data to Apple Watch BTC:$ \(BTC2) XRP: $\(XRP2) XMR: $\(XMR2)")
+            
+        }
+        
+        
+    }*/
+    
+    @IBOutlet var clickButtonTitle: UIBarButtonItem!
+    
+    @IBOutlet var saveButtonTitle: UIBarButtonItem!
+    
+    @IBAction func saveButton(_ sender: Any) {
+        
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+        
+        self.clearButtonTitle.isEnabled = true
+        
+        clearButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.6)
+        
+        self.saveButtonTitle.isEnabled = false
+        
+        saveButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        self.clickButtonTitle.isEnabled = true
+        
+        clickButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.6)
+        
+        let location = lastLocation[lastLocation.endIndex - 1]
+        
+        let regionRadius: CLLocationDistance = traveledDistance  //1500
+        
+        let coordinateRegion = MKCoordinateRegion.init(center: location, latitudinalMeters: regionRadius * 1.5, longitudinalMeters: regionRadius * 1.5)
+        
+        self.myMap.setRegion(coordinateRegion, animated: true)
+        
+    }
+    
+    @IBAction func backButton(_ sender: Any) {
+        
+        performSegue(withIdentifier: "mapToPlaces", sender: self)
+        
+    }
+    
+    func takeScreenshot(_ shouldSave: Bool) -> UIImage? {
+        
+        if shouldSave == true {
+            
+            var screenshotImage :UIImage?
+            
+            let layer = UIApplication.shared.keyWindow!.layer
+            
+            let scale = UIScreen.main.scale
+            
+            UIGraphicsBeginImageContextWithOptions(layer.frame.size, false, scale);
+            
+            guard let context = UIGraphicsGetCurrentContext() else {return nil}
+            
+            layer.render(in:context)
+            
+            screenshotImage = UIGraphicsGetImageFromCurrentImageContext()
+            
+            UIGraphicsEndImageContext()
+            
+            if let image = screenshotImage, shouldSave {
+                
+                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+            }
+            
+            return screenshotImage
+        
+        } else {
+            
+            return nil
+        }
+        
+    }
+    
+    @IBAction func refreshButton(_ sender: Any) {
+        
+        clear()
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view, typically from a nib.
+        
+        self.clickButtonTitle.isEnabled = false
+        
+        clickButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        clearButtonTitle.tintColor = UIColor.blue.withAlphaComponent(0.0)
+        
+        manager = CLLocationManager()
+        manager.delegate = self
+        manager.requestWhenInUseAuthorization()
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        //manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        
+        
+        myMap.delegate = self
+        myMap.mapType = .standard
+        myMap.showsTraffic = true
+        myMap.showsPointsOfInterest = true
+        
+        count = count + 1
+        
+        UIApplication.shared.isIdleTimerDisabled = true
+        
+        if activePlace == -1  {
+            
+            findLocation()
+            
+        } else {
+            
+            let lat = NSString(string: places[activePlace]["lat"]!).doubleValue
+            
+            let lon = NSString(string: places[activePlace]["lon"]!).doubleValue
+            
+            let latitude:CLLocationDegrees = lat
+            
+            let longitude:CLLocationDegrees = lon
+            
+            let latDelta:CLLocationDegrees = 0.01
+            
+            let lonDelta:CLLocationDegrees = 0.01
+            
+            let span:MKCoordinateSpan = MKCoordinateSpan.init(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+            
+            let location:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
+            
+            let region:MKCoordinateRegion = MKCoordinateRegion.init(center: location, span: span)
+            
+            myMap.setRegion(region, animated: true)
+            
+            myMap.showsUserLocation = true
+            
+        }
+        
+        let uilpgr = UILongPressGestureRecognizer(target: self, action: #selector(ViewController.action(gestureRecognizer:)))
+        
+        uilpgr.minimumPressDuration = 0.35
+        
+        myMap.addGestureRecognizer(uilpgr)
+        
+    }
+    
+    @IBAction func findMe(_ sender: AnyObject) {   //Track Button
+        
+        track()
+        
+    }
+    
+    
+    func track() {
+        
+        myMap.removeAnnotation(annotation)
+        
+        manager.startUpdatingLocation()
+        manager.startUpdatingHeading()
+        
         let latitude:CLLocationDegrees = manager.location!.coordinate.latitude
         let longitude:CLLocationDegrees = manager.location!.coordinate.longitude
         
-        let latDelta:CLLocationDegrees = 0.01
-        let longDelta:CLLocationDegrees = 0.01
-        let theSpan:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, longDelta)
+        //let latDelta:CLLocationDegrees = 0.01
+        //let longDelta:CLLocationDegrees = 0.01
+        //let _:MKCoordinateSpan = MKCoordinateSpan.init(latitudeDelta: latDelta, longitudeDelta: longDelta)
         let myLocation:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-        //let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
-        //myMap.setRegion(theRegion, animated: true)
-        myMap.mapType = MKMapType.Standard
-        let newCamera = MKMapCamera()
+        lastLocation = [CLLocationCoordinate2DMake(latitude, longitude)]
+        
+        /*myMap.mapType = MKMapType.standard
+        myMap.showsTraffic = true
+        myMap.showsPointsOfInterest = true*/
+        
+        /*let newCamera = MKMapCamera()
         newCamera.heading = 90.0
-        myMap.setCamera(newCamera, animated: true)
+        myMap.setCamera(newCamera, animated: true)*/
         
         let loc = CLLocation(latitude: latitude, longitude: longitude)
         
@@ -50,8 +284,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
             
             if ((error) != nil)  {
                 
-                print("Error: \(error)")
-            
+                print("Error: \(String(describing: error))")
+                
             } else {
                 
                 let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
@@ -81,18 +315,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     state = ""
                 }
                 
-                if ((p.addressDictionary!["City"]) != nil) {
-                    //city = p.locality!
-                    city = p.addressDictionary!["City"]! as! String
-                } else {
-                    city = ""
-                }
-
-                /*if ((p.locality) != nil) {
+                if ((p.locality) != nil) {
                     city = p.locality!
                 } else {
                     city = ""
-                }*/
+                }
                 
                 if ((p.postalCode) != nil) {
                     zip = p.postalCode!
@@ -100,18 +327,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     zip = ""
                 }
                 
-                if ((p.addressDictionary!["Country"]) != nil) {
-                    country = p.addressDictionary!["Country"]! as! String
+                if ((p.country) != nil) {
+                    country = p.country!
                 } else {
                     country = ""
                 }
-
                 
-                annotation.coordinate = myLocation
+                
+                self.annotation.coordinate = myLocation
                 
                 var title = "\(subThoroughfare) \(thoroughfare), \(city), \(state) \(zip) \(country)"
                 let newTitle = "\(subThoroughfare),+\(thoroughfare),+\(city),+\(state)+\(zip)+\(country)"
-                let title1 = newTitle.stringByReplacingOccurrencesOfString(" ", withString: "+")
+                let title1 = newTitle.replacingOccurrences(of:" ", with: "+")
                 
                 if title == "" {
                     
@@ -121,27 +348,22 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     
                 }
                 
-                annotation.title = title
+                /*self.annotation.title = title
                 
                 self.myMap.addAnnotation(annotation)
                 let myAnnotationAtIndex = 0
-                self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)
+                self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)*/
                 
-                //self.rotateLabel(annotation)
                 
                 var match = "no"
                 
-                for (var i = 0; i < places.count; i += 1) {
-                    
-                    //print("\(places[i]["name"]!) = \(title)")
+                for i in 0..<places.count {
                     
                     if (places[i]["name"]! == "\(title)") {
                         
                         match = "yes"
                         
                     }
-                   
-                    
                     
                 }
                 
@@ -149,12 +371,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     
                     places.append(["name":"\(title)","lat":"\(latitude)","lon":"\(longitude)"])
                     
-                    let storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
+                    UserDefaults.standard.set(places, forKey: "array" )
                     
-                    NSUserDefaults().setObject(places, forKey: "array" )
-
-                    print("StoredItems: \(storedToDoItems)")
-                   
+                    UserDefaults.standard.synchronize()
+                    
                 }
                 
                 daddr = "\(title1)"
@@ -162,144 +382,35 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                 
                 if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
-                        
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                     self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
                 
                 if ((subThoroughfare >= "5" && subThoroughfare <= "20" ) && thoroughfare == "Agnew Farm Rd" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                    self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
             }
             
             
         })
-
-        
-    }
-    
-    
-    @IBOutlet var latitude : UILabel!
-    @IBOutlet var longitude : UILabel!
-    @IBOutlet var address : UILabel!
-    @IBOutlet var altitude : UILabel!
-    @IBOutlet var speed : UILabel!
-    @IBOutlet var heading : UILabel!
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-        
-        manager = CLLocationManager()
-        manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
-        
-        myMap.delegate = self
-        
-        count = count + 1
-        
-        UIApplication.sharedApplication().idleTimerDisabled = true
-        
-        if activePlace == -1  {
-            
-            
-            manager.requestWhenInUseAuthorization()
-            manager.startUpdatingHeading()
-            manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-            manager.startUpdatingLocation()
-            //let latitude:CLLocationDegrees = manager.location!.coordinate.latitude
-            //let longitude:CLLocationDegrees = manager.location!.coordinate.longitude
-            //let latDelta:CLLocationDegrees = 0.01
-            //let longDelta:CLLocationDegrees = 0.01
-            //let theSpan:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, longDelta)
-            //let myLocation:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-            //let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
-            //myMap.setRegion(theRegion, animated: true)
-            myMap.mapType = MKMapType.Standard
-            
-            let camera = MKMapCamera()
-            camera.heading = 0.0
-            camera.centerCoordinate = myMap.centerCoordinate
-            //camera.pitch = 0.0
-            //camera.altitude = 400.0
-            //myMap.setCamera(camera, animated: true)
-
-            //myMap.setRegion(theRegion, animated: true)
-            myMap.mapType = MKMapType.Standard
-            myMap.showsPointsOfInterest = true
-            if #available(iOS 9.0, *) {
-                myMap.showsTraffic = true
-                myMap.showsBuildings = true
-            } else {
-                // Fallback on earlier versions
-            }
-            
-            findLocation()
-                
-            
-        } else {
-        
-        
-        let lat = NSString(string: places[activePlace]["lat"]!).doubleValue
-        
-        let lon = NSString(string: places[activePlace]["lon"]!).doubleValue
-        
-        let latitude:CLLocationDegrees = lat
-        
-        let longitude:CLLocationDegrees = lon
-        
-        let latDelta:CLLocationDegrees = 0.01
-        
-        let lonDelta:CLLocationDegrees = 0.01
-        
-        let span:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, lonDelta)
-        
-        let location:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-        
-        let region:MKCoordinateRegion = MKCoordinateRegionMake(location, span)
-        
-        myMap.setRegion(region, animated: true)
-            
-        myMap.showsUserLocation = true
-            
-        let annotation = MKPointAnnotation()
-            
-        annotation.coordinate = location
-            
-        annotation.title = places[activePlace]["name"]
-            
-        myMap.addAnnotation(annotation)
-            
-        //self.rotateLabel(annotation)
-            
-        }
-        
-        
-        let uilpgr = UILongPressGestureRecognizer(target: self, action: #selector(ViewController.action(_:)))
-        
-        uilpgr.minimumPressDuration = 0.35
-        
-        myMap.addGestureRecognizer(uilpgr)
         
         
     }
@@ -324,38 +435,46 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     }
     */
     
-    var heading1 = CLLocationDirection() * -1
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+    }
     
-    func locationManager(manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+    var heading1 = CLLocationDirection()
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         
         let speedMph = Int(speed2 * 2.23694)
-        
-        print("New Heading: \(newHeading.magneticHeading) Speed: \(speedMph)")
         
         let nhf = CGFloat(newHeading.magneticHeading)
         
         heading1 = newHeading.magneticHeading
         
-        /*if (speedMph <= 0) {
+        print("")
+        print("New Heading: \(newHeading.magneticHeading)\nSpeed: \(speedMph)\nHeading1: \(heading1)")
+        
+        
+        if (speedMph <= 0) {
+            
+            speed.text = "0"
+            
+        }
+        
+        if (speedMph >= 70) {
+            
+            speed.textColor = UIColor.red
             
         } else {
-        
-            //myMap.setUserTrackingMode(.FollowWithHeading, animated: true)
-            //myMap.transform = CGAffineTransformMakeRotation( -1 * 3.14159 / 180)  //( -1 * 3.14159 / 180)
-            let camera = MKMapCamera()
-            camera.heading = 0.0
-            camera.centerCoordinate = myMap.centerCoordinate
-            //camera.pitch = 80.0
-            camera.altitude = 100.0
-            //myMap.setCamera(camera, animated: true)
             
-        }*/
+            speed.textColor = UIColor.blue
+            
+        }
         
         //North
         if (nhf >= CGFloat(337.5000) && nhf < CGFloat(360.0000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -1 * 3.14159 / 180)  //( -1 * 3.14159 / 180)
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "North"
             
            
@@ -363,8 +482,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         
         if (nhf >= CGFloat(0.0000) && nhf < CGFloat(22.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -1 * 3.14159 / 180)  //( -1 * 3.14159 / 180)
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "North"
             
         }
@@ -372,62 +490,49 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         //NE
         if (nhf >= CGFloat(22.5000) && nhf < CGFloat(67.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -1 * 3.14159 / 180 )  //( -1 * 3.14159 / 180)
-              //myMap.setUserTrackingMode(.FollowWithHeading, animated: true)
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "NE"
-            
+           
         }
         //East
         if (nhf >= CGFloat(67.5000) && nhf < CGFloat(112.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -90 * 3.14159 / 180 ) //( -90 * 3.14159 / 180 )
-              //myMap.transform = CGAffineTransformRotate(self.myMap.transform, nhf)
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "East"
-            
-            
+           
         }
         //SE
         if (nhf >= CGFloat(112.5000) && nhf < CGFloat(157.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -135 * 3.14159 / 180 )  //( -90 * 3.14159 / 180 )
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "SE"
-            
+           
         }
         //South
         if (nhf >= CGFloat(157.5000) && nhf < CGFloat(202.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -180 * 3.14159 / 180 )  //( -180 * 3.14159 / 180 )
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "South"
-            
             
         }
         //SW
         if (nhf >= CGFloat(202.5000) && nhf < CGFloat(247.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -225 * 3.14159 / 180 )  //( -180 * 3.14159 / 180 )
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "SW"
             
         }
         //West
         if (nhf >= CGFloat(247.5000) && nhf < CGFloat(292.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -270 * 3.14159 / 180 )  //( -270 * 3.14159 / 180 )
-              //myMap.setUserTrackingMode(MKUserTrackingMode.FollowWithHeading, animated: true)
-
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "West"
-         
+            
         }
         //NW
         if (nhf >= CGFloat(292.5000) && nhf < CGFloat(337.5000)) {
             
-            //myMap.transform = CGAffineTransformMakeRotation( -325 * 3.14159 / 180 )  //( -270 * 3.14159 / 180 )
-            speed.text = "\(speedMph) mph"
+            speed.text = "\(speedMph)"
             heading.text = "NW"
             
         }
@@ -441,104 +546,70 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         var speed1: CLLocationSpeed = CLLocationSpeed()
         speed1 = location.speed
         speed2 = speed1
-        print("Speed: \(speed1) Heading: \(heading1)")
+        print("")
+        print("Speed: \(speed1)\nHeading: \(heading1)")
         
         if (speed1 <= 0.0000) { //0mph
             
-            //let regionRadius: CLLocationDistance = 100
-            
-            //let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, regionRadius * 2.0, regionRadius * 2.0)
-            
-           // myMap.setRegion(coordinateRegion, animated: true)
-            
-            let camera = MKMapCamera()
+            /*let camera = MKMapCamera()
             camera.centerCoordinate = myMap.centerCoordinate
-            camera.altitude = 800.0
-            camera.pitch = 50.0
-            //camera.heading = 0.0
-            //myMap.setCamera(camera, animated: true)
+            camera.altitude = 500.0
+            camera.pitch = 50.0*/
+            
+            let rotatedCamera = MKMapCamera(lookingAtCenter: location.coordinate, fromDistance: 250.0, pitch: 50.0, heading: heading1)
+            
+            myMap.setCamera(rotatedCamera, animated: true)
             
         }
         
         if (speed1 > 0.0000 && speed1 < 8.9408) { //>0-20mph
             
-            if #available(iOS 9.0, *) {
-                let rotatedCamera = MKMapCamera(lookingAtCenterCoordinate: location.coordinate, fromDistance: 800.0, pitch: 50.0, heading: heading1)
-                myMap.setCamera(rotatedCamera, animated: true)
-            } else {
-                
-                let regionRadius: CLLocationDistance = 100
-                
-                let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, regionRadius * 2.0, regionRadius * 2.0)
-                
-                myMap.setRegion(coordinateRegion, animated: true)
-
-            }
-           
+            let rotatedCamera = MKMapCamera(lookingAtCenter: location.coordinate, fromDistance: 500.0, pitch: 50.0, heading: heading1)
+            
+            myMap.setCamera(rotatedCamera, animated: true)
             
         }
         
         if (speed1 > 8.9408 && speed1 < 20.1168) { //20-45mph
+           
+            let rotatedCamera = MKMapCamera(lookingAtCenter: location.coordinate, fromDistance: 800.0, pitch: 50.0, heading: heading1)
             
-            if #available(iOS 9.0, *) {
-                let rotatedCamera = MKMapCamera(lookingAtCenterCoordinate: location.coordinate, fromDistance: 1100.0, pitch: 50.0, heading: heading1)
-                myMap.setCamera(rotatedCamera, animated: true)
-            } else {
-                
-                let regionRadius: CLLocationDistance = 250
-                
-                let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, regionRadius * 2.0, regionRadius * 2.0)
-                
-                myMap.setRegion(coordinateRegion, animated: true)
-                
-            }
+            myMap.setCamera(rotatedCamera, animated: true)
             
         }
-        
         
         if (speed1 >= 20.1168 && speed1 < 26.8224) { //45mph-60mph
         
-            if #available(iOS 9.0, *) {
-                let rotatedCamera = MKMapCamera(lookingAtCenterCoordinate: location.coordinate, fromDistance: 1800.0, pitch: 50.0, heading: heading1)
-                myMap.setCamera(rotatedCamera, animated: true)
-            } else {
-                
-                let regionRadius: CLLocationDistance = 800
-                
-                let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, regionRadius * 2.0, regionRadius * 2.0)
-                
-                myMap.setRegion(coordinateRegion, animated: true)
-                
-            }
+            let rotatedCamera = MKMapCamera(lookingAtCenter: location.coordinate, fromDistance: 1500.0, pitch: 50.0, heading: heading1)
+            
+            myMap.setCamera(rotatedCamera, animated: true)
             
         }
-        
+      
         if (speed1 >= 26.8224) { //>=60mph
             
-            if #available(iOS 9.0, *) {
-                let rotatedCamera = MKMapCamera(lookingAtCenterCoordinate: location.coordinate, fromDistance: 2200.0, pitch: 50.0, heading: heading1)
-                myMap.setCamera(rotatedCamera, animated: true)
-            } else {
+            let rotatedCamera = MKMapCamera(lookingAtCenter: location.coordinate, fromDistance: 2200.0, pitch: 50.0, heading: heading1)
+            
+            myMap.setCamera(rotatedCamera, animated: true)
+            
+        } /*else {
                 
-                let regionRadius: CLLocationDistance = 1000
+                let regionRadius: CLLocationDistance = 1100
                 
-                let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, regionRadius * 2.0, regionRadius * 2.0)
+                let coordinateRegion = MKCoordinateRegion.init(center: location.coordinate, latitudinalMeters: regionRadius * 2.0, longitudinalMeters: regionRadius * 2.0)
                 
                 myMap.setRegion(coordinateRegion, animated: true)
                 
-            }
-        }
-        
+        }*/
         
     }
     
-    
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         
         if addManually == "" {
             
         } else {
-            //myMap.setUserTrackingMode(.FollowWithHeading, animated: true)
+            
             manualLocation()
             
         }
@@ -547,14 +618,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     }
     
     
-    
-    func action(gestureRecognizer:UIGestureRecognizer) {
+    @objc func action(gestureRecognizer:UIGestureRecognizer) {
         
-      if gestureRecognizer.state == UIGestureRecognizerState.Began {
+        if gestureRecognizer.state == UIGestureRecognizer.State.began {
         
-        let touchPoint = gestureRecognizer.locationInView(self.myMap)
+            let touchPoint = gestureRecognizer.location(in: self.myMap)
         
-        let newCoordinate = myMap.convertPoint(touchPoint, toCoordinateFromView: self.myMap)
+            let newCoordinate = myMap.convert(touchPoint, toCoordinateFrom: self.myMap)
         
         let loc = CLLocation(latitude: newCoordinate.latitude, longitude: newCoordinate.longitude)
         
@@ -562,7 +632,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
             
             if ((error) != nil)  {
                 
-                print("Error: \(error)")
+                print("Error: \(error!)")
             
             } else {
                 
@@ -593,9 +663,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     state = ""
                 }
                 
-                if ((p.addressDictionary!["City"]) != nil) {
-                    //city = p.locality!
-                    city = p.addressDictionary!["City"]! as! String
+                if ((p.locality) != nil) {
+                    city = p.locality!
+                    //city = p.addressDictionary!["City"]! as! String
                 } else {
                     city = ""
                 }
@@ -606,23 +676,23 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     zip = ""
                 }
                 
-                if ((p.addressDictionary!["Country"]) != nil) {
-                    country = p.addressDictionary!["Country"]! as! String
+                if ((p.country) != nil) {
+                    country = p.country!  //addressDictionary!["Country"]! as! String
                 } else {
                     country = ""
                 }
 
                 var myAnnotationAtIndex = 0
                 
-                let annotation = MKPointAnnotation()
+                //let annotation = MKPointAnnotation()
                 
-                annotation.coordinate = newCoordinate
+                self.annotation.coordinate = newCoordinate
                 
                 //self.rotateLabel(annotation)
                 
                 var title = "\(subThoroughfare) \(thoroughfare), \(city), \(state) \(zip) \(country)"
                 let newTitle = "\(subThoroughfare),+\(thoroughfare),+\(city),+\(state)+\(zip)+\(country)"
-                let title1 = newTitle.stringByReplacingOccurrencesOfString(" ", withString: "+")
+                let title1 = newTitle.replacingOccurrences(of:" ", with: "+")
                 
                 if title == "" {
                     
@@ -632,20 +702,17 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     
                 }
                 
-                annotation.title = title
+                self.annotation.title = title
                 
-                self.myMap.addAnnotation(annotation)
+                self.myMap.addAnnotation(self.annotation)
                 
                 self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)
                 
                 places.append(["name":"\(title)","lat":"\(newCoordinate.latitude)","lon":"\(newCoordinate.longitude)"])
                 
+                UserDefaults.standard.set(places, forKey: "array" )
                 
-                let storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
-                
-                NSUserDefaults().setObject(places, forKey: "array" )
-                
-                print("StoredItems: \(storedToDoItems)")
+                UserDefaults.standard.synchronize()
                 
                 myAnnotationAtIndex = myAnnotationAtIndex + 1
                 
@@ -661,14 +728,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         
     }
     
-    override func viewWillDisappear(animated: Bool) {
-        
-        self.navigationController?.navigationBarHidden = false
-        
+    override func viewWillDisappear(_ animated: Bool) {
         
         if count == 0 {
             
-            places.removeAtIndex(0)
+            places.remove(at: 0)
             
         } else {
             
@@ -678,18 +742,20 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         
     }
     
-    func mapView(mapView: MKMapView, rendererForOverlay overlay: MKOverlay) -> MKOverlayRenderer {
+    var polyline = MKPolyline()
+    
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         
-        let polyline = overlay as! MKPolyline
+        polyline = overlay as! MKPolyline
         let renderer = MKPolylineRenderer(overlay: polyline)
-        renderer.strokeColor = UIColor.blueColor()
+        renderer.strokeColor = UIColor.blue
         renderer.lineWidth = 5.0
         
         return renderer
         
     }
     
-    func locationManager(manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
+    func locationManager(_ manager:CLLocationManager, didUpdateLocations locations:[CLLocation]) {
         
         let userLocation:CLLocation = locations[0] as CLLocation
         
@@ -699,15 +765,35 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         
         let longitude:CLLocationDegrees = userLocation.coordinate.longitude
         
-        //let center = CLLocationCoordinate2D(latitude: userLocation.coordinate.latitude, longitude: userLocation.coordinate.longitude)
-        
-        //let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-        
         myMap.showsUserLocation = true
-        //myMap.setRegion(region, animated: true)
         
-        centerMapOnLocation(userLocation)
+        centerMapOnLocation(location: userLocation)
         
+        //Get total distance traveled
+        if startDate == nil {
+            
+            startDate = Date()
+            
+        } else {
+            
+            print("elapsedTime:", String(format: "%.0fs", Date().timeIntervalSince(startDate)))
+        }
+        
+        if startLocal == nil {
+            
+            startLocal = locations.first
+           
+        } else if let location = locations.last {
+            
+            traveledDistance += lastLocal.distance(from: location)
+            
+            print("Traveled Distance:",  traveledDistance)
+            
+            print("Straight Distance:", startLocal.distance(from: locations.last!))
+            
+        }
+        
+        lastLocal = locations.last
         
         if (myLocations.count > 1){
             
@@ -718,18 +804,21 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
             let c2 = myLocations[destinationIndex].coordinate
             var a = [c1, c2]
             
-            let polyline = MKPolyline(coordinates: &a, count: a.count)
+            polyline = MKPolyline(coordinates: &a, count: a.count)
+            polyline.title = "Polyline"
             
             myMap.addOverlay(polyline)
             
         }
         
+        //_ = NSTimer.scheduledTimerWithTimeInterval(60.0, target: self, selector: #selector(ViewController.updatePlacemark), userInfo: nil, repeats: true)
+        
         CLGeocoder().reverseGeocodeLocation(userLocation, completionHandler:{(placemarks, error) in
             
             if ((error) != nil)  {
                 
-                print("Error: \(error)")
-            
+                print("Error: \(String(describing: error))")
+                
             } else {
                 
                 let p = CLPlacemark(placemark: (placemarks?[0])! as CLPlacemark)
@@ -756,37 +845,34 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     zip = ""
                 }
                 
-                self.address.text =  "\(subThoroughfare) \(p.thoroughfare) \n \(p.subLocality) \n \(p.subAdministrativeArea) \n \(p.postalCode) \(p.country)"
+               // self.address.text =  "\(subThoroughfare) \(p.thoroughfare) \n \(p.subLocality) \n \(p.subAdministrativeArea) \n \(p.postalCode) \(p.country)"
+                self.address.text =  "\(subThoroughfare) \(String(describing: p.thoroughfare)) \n \(String(describing: p.subLocality)) \n \(String(describing: p.subAdministrativeArea)) \n \(String(describing: p.postalCode)) \(String(describing: p.country))"
                 
                 if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
-                        manager.stopUpdatingLocation()
-
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                    self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
                 
                 if (subThoroughfare == "2" && thoroughfare == "Agnew Farm Rd" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                    self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
                 
@@ -795,28 +881,39 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
             
         })
         
+        
+        
         saddr = "\(latitude),\(longitude)"
-        print("saddr: \(saddr)")
-
-
+        print("")
+        print("Source Address: \(saddr)")
+        
+    }
+    
+    func clear() {
+        
+        for overlay in myMap.overlays {
+            if (overlay.title == "Polyline") {
+                myMap.removeOverlay(overlay)
+            }
+        }
+       myMap.removeAnnotation(annotation)
+        
     }
     
     func manualLocation() {
         
         if addManually != "" {
             
-            let annotation = MKPointAnnotation()
-            
             let latDelta:CLLocationDegrees = 0.01
             let longDelta:CLLocationDegrees = 0.01
-            let theSpan:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, longDelta)
+            let theSpan:MKCoordinateSpan = MKCoordinateSpan.init(latitudeDelta: latDelta, longitudeDelta: longDelta)
             
             let address = addManually
             let geocoder = CLGeocoder()
             
             geocoder.geocodeAddressString(address, completionHandler: {(placemarks, error) -> Void in
                 if((error) != nil){
-                    print("Error", error)
+                    print("Error", error!)
                 }
                 if let p = placemarks?.first {
                     
@@ -827,9 +924,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     let longitude:CLLocationDegrees = coordinates.longitude
                     
                     let myLocation:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-                    let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
+                    let theRegion:MKCoordinateRegion = MKCoordinateRegion.init(center: myLocation, span: theSpan)
                     self.myMap.setRegion(theRegion, animated: true)
-                    self.myMap.mapType = MKMapType.Standard
+                    self.myMap.mapType = MKMapType.standard
 
                     
                     var subThoroughfare:String
@@ -857,9 +954,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                         state = ""
                     }
                     
-                    if ((p.addressDictionary!["City"]) != nil) {
-                        //city = p.locality!
-                        city = p.addressDictionary!["City"]! as! String
+                    if ((p.locality) != nil) {
+                        city = p.locality!
+                        //city = p.addressDictionary!["City"]! as! String
                     } else {
                         city = ""
                     }
@@ -871,35 +968,30 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                         zip = ""
                     }
                     
-                    if ((p.addressDictionary!["Country"]) != nil) {
-                        country = p.addressDictionary!["Country"]! as! String
+                    if ((p.country) != nil) {
+                        country = p.country!
                     } else {
                         country = ""
                     }
 
                     
-                    
-                    annotation.coordinate = myLocation
+                    self.annotation.coordinate = myLocation
                     
                     let title = "\(subThoroughfare) \(thoroughfare), \(city), \(state) \(zip) \(country)"
                     
-                    annotation.title = title
+                    self.annotation.title = title
                     
-                    self.myMap.addAnnotation(annotation)
+                    self.myMap.addAnnotation(self.annotation)
                     let myAnnotationAtIndex = 0
                     self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)
                     
-                    //self.rotateLabel(annotation)
-                    
+                   
                     places.append(["name":"\(title)","lat":"\(latitude)","lon":"\(longitude)"])
                     
+                    UserDefaults.standard.set(places, forKey: "array" )
                     
-                    let storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
-                    
-                    NSUserDefaults().setObject(places, forKey: "array" )
-                    
-                    print("StoredItems: \(storedToDoItems)")
-                    
+                    UserDefaults.standard.synchronize()
+                   
                     }
             })
             
@@ -918,18 +1010,19 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     func findLocation() {
         
         //shows pin on map with title = current location and adds to places table
-        let annotation = MKPointAnnotation()
         let latitude:CLLocationDegrees = manager.location!.coordinate.latitude
         let longitude:CLLocationDegrees = manager.location!.coordinate.longitude
         
         let latDelta:CLLocationDegrees = 0.01
         let longDelta:CLLocationDegrees = 0.01
-        let theSpan:MKCoordinateSpan = MKCoordinateSpanMake(latDelta, longDelta)
-        //var myHome:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
+        let theSpan:MKCoordinateSpan = MKCoordinateSpan.init(latitudeDelta: latDelta, longitudeDelta: longDelta)
         let myLocation:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-        let theRegion:MKCoordinateRegion = MKCoordinateRegionMake(myLocation, theSpan)
+        let theRegion:MKCoordinateRegion = MKCoordinateRegion.init(center: myLocation, span: theSpan)
         myMap.setRegion(theRegion, animated: true)
-        myMap.mapType = MKMapType.Standard
+        //myMap.mapType = MKMapType.standard
+        //myMap.showsTraffic = true
+        //myMap.showsPointsOfInterest = true
+        
         
         let loc = CLLocation(latitude: latitude, longitude: longitude)
         
@@ -937,7 +1030,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
             
             if ((error) != nil)  {
                 
-                print("Error: \(error)")
+                print("Error: \(error!)")
                 
             } else {
                 
@@ -968,9 +1061,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     state = ""
                 }
                 
-                if ((p.addressDictionary!["City"]) != nil) {
-                    //city = p.locality!
-                    city = p.addressDictionary!["City"]! as! String
+                if ((p.locality) != nil) {
+                    city = p.locality!
+                    //city = p.addressDictionary!["City"]! as! String
                 } else {
                     city = ""
                 }
@@ -982,21 +1075,21 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     zip = ""
                 }
                 
-                if ((p.addressDictionary!["Country"]) != nil) {
-                    country = p.addressDictionary!["Country"]! as! String
+                if ((p.country) != nil) {
+                    country = p.country!
                 } else {
                     country = ""
                 }
 
                 
                 
-                annotation.coordinate = myLocation
+                self.annotation.coordinate = myLocation
                 
                 //self.rotateLabel(annotation)
                 
                 var title = "\(subThoroughfare) \(thoroughfare), \(city), \(state) \(zip) \(country)"
                 let newTitle = "\(subThoroughfare),+\(thoroughfare),+\(city),+\(state)+\(zip)+\(country)"
-                let title1 = newTitle.stringByReplacingOccurrencesOfString(" ", withString: "+")
+                let title1 = newTitle.replacingOccurrences(of: " ", with: "+")
                 
                 if title == "" {
                     
@@ -1006,35 +1099,32 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                     
                 }
                 
-                //annotation.title = title
+                self.annotation.title = title
                 
-                //self.myMap.addAnnotation(annotation)
-                //let myAnnotationAtIndex = 0
-                //self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)
+                self.myMap.addAnnotation(self.annotation)
+                let myAnnotationAtIndex = 0
+                self.myMap.selectAnnotation(self.myMap.annotations[myAnnotationAtIndex], animated: true)
 
                 var match = "no"
                 
-                for (var i = 0; i < places.count; i += 1) {
-                   
+                
+                for i in 0 ..< places.count {
+                    
                     if (places[i]["name"]! == "\(title)") {
                         
                         match = "yes"
                         
                     }
-                    
-                    
+                   
                 }
                 
                 if match == "no" {
                     
                     places.append(["name":"\(title)","lat":"\(latitude)","lon":"\(longitude)"])
                     
+                    UserDefaults.standard.set(places, forKey: "array" )
                     
-                    let storedToDoItems: AnyObject! = NSUserDefaults.standardUserDefaults().objectForKey("array")
-                    
-                    NSUserDefaults().setObject(places, forKey: "array" )
-                    
-                    print("StoredItems: \(storedToDoItems)")
+                    UserDefaults.standard.synchronize()
                     
                 }
 
@@ -1043,32 +1133,29 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
                 
                 if (thoroughfare == "Log Cabin Way" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Gate Code 8153", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
-                        
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                    self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
                 
                 if (subThoroughfare == "2" && thoroughfare == "Agnew Farm Rd" && zip ==  "10504") {
                     
-                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertControllerStyle.Alert)
+                    let alert = UIAlertController(title: "Pool Code 421", message: "", preferredStyle: UIAlertController.Style.alert)
                     
-                    alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { action in
+                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
                         
-                        alert.dismissViewControllerAnimated(true, completion: nil)
-                        
+                        alert.dismiss(animated: true, completion: nil)
                         
                     }))
                     
-                    self.presentViewController(alert, animated: true, completion: nil)
+                    self.present(alert, animated: true, completion: nil)
                     
                 }
             }
@@ -1086,4 +1173,5 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     
     
 }
+
 

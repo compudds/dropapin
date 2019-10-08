@@ -58,15 +58,40 @@
 		<string>MKDirectionsModeCar</string>
 		<string>MKDirectionsModePedestrian</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string></string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>To save your routes we need to access the camera.</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>IntentIntent</string>
+		<string>com.bettersearchllc.Maps.dropPin</string>
+	</array>
+	<key>UIApplicationShortcutIconType</key>
+	<string>UIApplicationShortcutIconTypeAdd</string>
+	<key>UIApplicationShortcutItemTitle</key>
+	<string>Drop A Pin?</string>
+	<key>UIApplicationShortcutItemType</key>
+	<string>com.appfish.Maps.addPin</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>location</string>
+	</array>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
 	</array>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
 </dict>
 </plist>

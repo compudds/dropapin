@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder.WatchKit.Storyboard" version="3.0" toolsVersion="14113" targetRuntime="watchKit" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="AgC-eL-Hgc">
+    <device id="watch38" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="watchOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBWatchKitPlugin" version="14033"/>
+    </dependencies>
+    <scenes>
+        <!--Interface Controller-->
+        <scene sceneID="aou-V4-d1y">
+            <objects>
+                <controller id="AgC-eL-Hgc" customClass="InterfaceController" customModule="Drop_a_Pin_Watch" customModuleProvider="target">
+                    <items>
+                        <button width="1" alignment="left" title="Drop A Pin" id="ogb-sx-y4g">
+                            <color key="backgroundColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            <connections>
+                                <action selector="buttonPressed:" destination="AgC-eL-Hgc" id="que-4P-8Ee"/>
+                            </connections>
+                        </button>
+                        <label width="133" height="112" alignment="left" textAlignment="center" numberOfLines="5" id="HcT-DJ-UQx"/>
+                        <map width="165" height="100" alignment="left" alpha="0.0" id="cv3-XG-tTj"/>
+                        <button width="1" alignment="left" title="Text Location" id="XHJ-Li-YXc">
+                            <color key="backgroundColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            <connections>
+                                <action selector="sendText" destination="AgC-eL-Hgc" id="0j5-Hk-h68"/>
+                            </connections>
+                        </button>
+                        <button width="1" alignment="left" title="Call Dori" id="Lqk-f6-W7P">
+                            <color key="backgroundColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            <connections>
+                                <action selector="makePhoneCall" destination="AgC-eL-Hgc" id="hfK-hY-LfN"/>
+                            </connections>
+                        </button>
+                        <button width="1" alignment="left" title="Clear" id="MO6-w5-dnc">
+                            <color key="backgroundColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            <connections>
+                                <action selector="clear" destination="AgC-eL-Hgc" id="lgS-yV-Upb"/>
+                            </connections>
+                        </button>
+                        <label width="136" height="27" alignment="left" textAlignment="center" id="KIc-ou-lrk"/>
+                        <label width="136" height="27" alignment="left" textAlignment="center" id="nU3-d2-x7R"/>
+                        <label width="136" height="27" alignment="left" textAlignment="center" id="vPx-rJ-WuE"/>
+                        <button width="1" alignment="left" title="Update Price" id="eM7-7s-s2d">
+                            <color key="backgroundColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            <connections>
+                                <action selector="updatePrice" destination="AgC-eL-Hgc" id="VBD-XI-2Fe"/>
+                            </connections>
+                        </button>
+                    </items>
+                    <connections>
+                        <outlet property="crypto" destination="KIc-ou-lrk" id="ETu-QM-Njb"/>
+                        <outlet property="crypto2" destination="nU3-d2-x7R" id="M2q-3x-r8Q"/>
+                        <outlet property="crypto3" destination="vPx-rJ-WuE" id="yHD-f8-9i9"/>
+                        <outlet property="locationText" destination="HcT-DJ-UQx" id="M6e-lN-Edq"/>
+                        <outlet property="map" destination="cv3-XG-tTj" id="d8L-mz-wl7"/>
+                    </connections>
+                </controller>
+            </objects>
+            <point key="canvasLocation" x="220" y="368"/>
+        </scene>
+        <!--Static Notification Interface Controller-->
+        <scene sceneID="AEw-b0-oYE">
+            <objects>
+                <notificationController id="YCC-NB-fut">
+                    <items>
+                        <label alignment="left" text="Alert Label" id="IdU-wH-bcW"/>
+                    </items>
+                    <notificationCategory key="notificationCategory" identifier="myCategory" id="JfB-70-Muf"/>
+                    <connections>
+                        <outlet property="notificationAlertLabel" destination="IdU-wH-bcW" id="JKC-fr-R95"/>
+                        <segue destination="4sK-HA-Art" kind="relationship" relationship="dynamicNotificationInterface" id="kXh-Jw-8B1"/>
+                    </connections>
+                </notificationController>
+            </objects>
+            <point key="canvasLocation" x="220" y="643"/>
+        </scene>
+        <!--Notification Controller-->
+        <scene sceneID="ZPc-GJ-vnh">
+            <objects>
+                <controller id="4sK-HA-Art" customClass="NotificationController" customModule="Drop_a_Pin_Watch" customModuleProvider="target"/>
+            </objects>
+            <point key="canvasLocation" x="468" y="643"/>
+        </scene>
+    </scenes>
+</document>
