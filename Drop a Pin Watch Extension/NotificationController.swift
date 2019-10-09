@@ -3,7 +3,7 @@
 //  Drop a Pin Watch Extension
 //
 //  Created by Eric Cook on 3/27/18.
-//  Copyright © 2018 Appfish. All rights reserved.
+//  Copyright © 2018 Better Search, LLC. All rights reserved.
 //
 
 import WatchKit

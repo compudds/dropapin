@@ -3,7 +3,7 @@
 //  Drop a Pin Watch Extension
 //
 //  Created by Eric Cook on 3/27/18.
-//  Copyright © 2018 Appfish. All rights reserved.
+//  Copyright © 2018 Better Search, LLC. All rights reserved.
 ///
 
 import WatchKit
@@ -623,6 +623,14 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
          trigger: trigger
          )
         
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+        
+        //Update Complication
+        let server = CLKComplicationServer.sharedInstance()
+        for complication in server.activeComplications! {
+            server.reloadTimeline(for: complication)
+        }
+        
         self.updateCurrentTime()
         
         print("Time: \(updatedTime)")
@@ -634,13 +642,6 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
             
         }
         
-        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
-        
-        //Update Complication
-        let server = CLKComplicationServer.sharedInstance()
-        for complication in server.activeComplications! {
-            server.reloadTimeline(for: complication)
-        }
         
     }
     

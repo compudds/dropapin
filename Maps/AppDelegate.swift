@@ -2,8 +2,8 @@
 //  AppDelegate.swift
 //  Maps
 //
-//  Created by Rob Percival on 10/07/2014.
-//  Copyright (c) 2014 Appfish. All rights reserved.
+//  Created by Eric Cook on 3/27/18.
+//  Copyright © 2018 Better Search, LLC. All rights reserved.
 //
 
 import UIKit

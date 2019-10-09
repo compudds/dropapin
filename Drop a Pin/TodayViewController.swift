@@ -2,8 +2,8 @@
 //  TodayViewController.swift
 //  Drop a Pin
 //
-//  Created by Eric Cook on 12/17/14.
-//  Copyright (c) 2014 Appfish. All rights reserved.
+//  Created by Eric Cook on 3/27/18.
+//  Copyright © 2018 Better Search, LLC. All rights reserved.
 //
 
 import UIKit
