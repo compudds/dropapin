@@ -22,6 +22,7 @@
 	<string>2</string>
 	<key>NSUserActivityTypes</key>
 	<array>
+		<string>GetLocationIntent</string>
 		<string>IntentIntent</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>

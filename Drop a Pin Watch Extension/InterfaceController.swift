@@ -129,9 +129,8 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
         
        //NotificationCenter.default.addObserver(self, selector: #selector(didReceiveExtensionData), name: NSNotification.Name(rawValue: "receivedExtensionData"), object: nil)
         
-        _ = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(doNothing), userInfo: nil, repeats: false)
         
-        scheduleURLSession()
+        //scheduleURLSession()
         
         places3 = []
         
@@ -146,6 +145,10 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
         manager2.requestLocation()
         manager2.requestWhenInUseAuthorization()
         manager2.startUpdatingLocation()
+        
+        _ = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(doNothing), userInfo: nil, repeats: false)
+        
+         scheduleURLSession()
         
     }
     
@@ -587,8 +590,8 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
         
         getPrices()
         
-        _ = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(updateScreen), userInfo: nil, repeats: false)
-      
+        _ = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(notification), userInfo: nil, repeats: false)
+        
     }
     
     func updateCurrentTime() {
@@ -635,12 +638,6 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
         
         print("Time: \(updatedTime)")
         
-        if (updatedTime >= 730 && updatedTime <= 2300) {
-            
-            //tap-tap haptic tap acivated between 7:30am - 11:00pm
-            WKInterfaceDevice.current().play(.notification)
-            
-        }
         
         
     }
@@ -660,6 +657,13 @@ class InterfaceController: WKInterfaceController, WKExtensionDelegate,  CLLocati
         updateComplication()
         
         updateScreen()
+        
+        if (updatedTime >= 730 && updatedTime <= 2300) {
+            
+            //tap-tap haptic tap acivated between 7:30am - 11:00pm
+            WKInterfaceDevice.current().play(.notification)
+            
+        }
         
     }
 

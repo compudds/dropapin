@@ -71,6 +71,7 @@
 	<string>To save your routes we need to access the camera.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
+		<string>GetLocationIntent</string>
 		<string>IntentIntent</string>
 		<string>com.bettersearchllc.Maps.dropPin</string>
 	</array>

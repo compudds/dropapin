@@ -310,13 +310,6 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, URLSe
          
          print("Time: \(updatedTime)")
          
-         if (updatedTime >= 730 && updatedTime <= 2300) {
-             
-             //tap-tap haptic tap acivated between 7:30am - 11:00pm
-             WKInterfaceDevice.current().play(.notification)
-             
-         }
-         
      }
      
      @objc func notification() {
@@ -334,6 +327,13 @@ class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate, URLSe
          updateComplication()
          
          updateScreen()
+        
+         if (updatedTime >= 730 && updatedTime <= 2300) {
+             
+             //tap-tap haptic tap acivated between 7:30am - 11:00pm
+             WKInterfaceDevice.current().play(.notification)
+             
+         }
          
      }
 

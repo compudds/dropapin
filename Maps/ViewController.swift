@@ -57,7 +57,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         
         DispatchQueue.main.async {
             
-            self.takeScreenshot(true)
+            //self.takeScreenshot(true)
             
             self.performSegue(withIdentifier: "mapToPlaces", sender: self)
             
